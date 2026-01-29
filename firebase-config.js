@@ -35,6 +35,7 @@ import {
   ref,
   uploadBytes,
   getDownloadURL,
+  deleteObject,
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
 // ============================================
@@ -227,6 +228,44 @@ async function getUserData(uid) {
   }
 }
 
+async function ensureUserDocument(uid, data = {}) {
+  try {
+    const docRef = doc(db, "users", uid);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      return docSnap.data();
+    }
+
+    const payload = {
+      uid,
+      email: data.email || "",
+      username: (data.username || "").toLowerCase(),
+      displayName: data.displayName || "",
+      profilePic: data.profilePic || "",
+      bio: data.bio || "",
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      isAdmin: data.isAdmin ?? false,
+      settings: {
+        theme: data.settings?.theme || "dark",
+        autoSave: data.settings?.autoSave ?? true,
+        notifications: data.settings?.notifications ?? true,
+      },
+      website: data.website || "",
+      twitter: data.twitter || "",
+      instagram: data.instagram || "",
+      writingGoal: data.writingGoal || 500,
+    };
+
+    await setDoc(docRef, payload);
+    return payload;
+  } catch (error) {
+    console.error("Error ensuring user document:", error);
+    return null;
+  }
+}
+
 async function updateUserProfile(uid, data) {
   try {
     const q = query(collection(db, "users"), where("uid", "==", uid));
@@ -258,6 +297,26 @@ async function uploadProfilePicture(uid, file) {
   } catch (error) {
     console.error("Error uploading profile picture:", error);
     return null;
+  }
+}
+
+async function deleteProfilePicture(uid) {
+  try {
+    const storageRef = ref(storage, `profile-pictures/${uid}`);
+    // Attempt to delete storage object; if it doesn't exist, ignore
+    try {
+      await deleteObject(storageRef);
+    } catch (err) {
+      // ignore not-found errors
+      console.warn('Could not delete storage object (may not exist):', err.message || err);
+    }
+
+    // Clear profilePic field in user document
+    await updateUserProfile(uid, { profilePic: null });
+    return true;
+  } catch (error) {
+    console.error('Error deleting profile picture:', error);
+    return false;
   }
 }
 
@@ -431,16 +490,18 @@ async function updateDraft(draftId, data) {
 
 async function getUserDrafts(uid) {
   try {
+    // Query without orderBy to avoid composite index requirement
     const q = query(
       collection(db, "drafts"),
       where("authorId", "==", uid),
-      orderBy("autoSavedAt", "desc"),
     );
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map((doc) => ({
+    const drafts = querySnapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
     }));
+    // Sort in JavaScript instead
+    return drafts.sort((a, b) => (b.autoSavedAt || 0) - (a.autoSavedAt || 0));
   } catch (error) {
     console.error("Error getting drafts:", error);
     return [];
@@ -566,16 +627,18 @@ async function addComment(postId, userId, userName, text) {
 
 async function getPostComments(postId) {
   try {
+    // Query without orderBy to avoid composite index requirement
     const q = query(
       collection(db, "comments"),
       where("postId", "==", postId),
-      orderBy("createdAt", "desc"),
     );
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map((doc) => ({
+    const comments = querySnapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
     }));
+    // Sort in JavaScript instead
+    return comments.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   } catch (error) {
     console.error("Error getting comments:", error);
     return [];
@@ -647,8 +710,10 @@ export {
   onAuthStateChange,
   // User
   getUserData,
+  ensureUserDocument,
   updateUserProfile,
   uploadProfilePicture,
+  deleteProfilePicture,
   // Posts
   createPost,
   getPublishedPosts,

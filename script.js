@@ -37,7 +37,7 @@ import {
 const SETTINGS_KEY = "diary_settings_v1";
 
 // DOM Elements
-const editor = document.getElementById("editor");
+const editor = document.getElementById("editorArea");
 const titleInput = document.getElementById("title");
 const category = document.getElementById("category");
 const mood = document.getElementById("mood");
@@ -110,16 +110,13 @@ confirmModal.addEventListener("click", (e) => {
   }
 });
 
-// Storage helpers
+// Storage helpers - Removed localStorage, using Firebase instead
 function loadJSON(key) {
-  try {
-    return JSON.parse(localStorage.getItem(key)) || {};
-  } catch (e) {
-    return {};
-  }
+  // All data is now stored in Firebase - returning empty object
+  return {};
 }
 function saveJSON(key, val) {
-  localStorage.setItem(key, JSON.stringify(val));
+  // All data is now stored in Firebase - no localStorage usage
 }
 
 // Update UI on load
@@ -385,8 +382,9 @@ function renderPublished() {
           (t || "").toLowerCase().includes(searchTerm),
         )),
   );
-  const likes = loadJSON(LIKES_KEY);
-  const comments = loadJSON(COMMENTS_KEY);
+  // Data loaded from Firebase - using empty objects for now
+  const likes = {};
+  const comments = {};
 
   if (posts.length === 0) {
     publishedPosts.innerHTML =
@@ -645,8 +643,9 @@ function updateAnalytics() {
     (p) => p.author === user.username && p.published,
   );
   const drafts = loadDrafts()[user.username] || [];
-  const likes = loadJSON(LIKES_KEY);
-  const comments = loadJSON(COMMENTS_KEY);
+  // Data loaded from Firebase - using empty objects
+  const likes = {};
+  const comments = {};
 
   let totalLikes = 0;
   let totalComments = 0;
@@ -721,8 +720,9 @@ profileBtn.addEventListener("click", () => {
   const accountAge = Math.floor(
     (Date.now() - (user.createdAt || Date.now())) / (1000 * 60 * 60 * 24),
   );
-  const totalLikes = loadJSON(LIKES_KEY);
-  const totalComments = loadJSON(COMMENTS_KEY);
+  // Data loaded from Firebase - using empty objects for now
+  const totalLikes = {};
+  const totalComments = {};
   let userTotalLikes = 0;
   let userTotalComments = 0;
   let totalWords = 0;
@@ -1123,7 +1123,7 @@ document.getElementById("authForm").addEventListener("submit", (e) => {
     document.getElementById("authForm").reset();
     showNotification("✨ Welcome back, " + username + "!", "success");
     // Auto-select Write tab after login
-    const writeTabBtn = document.querySelector('.tabBtn[data-tab="editor"]');
+    const writeTabBtn = document.querySelector('.tabBtn[data-tab="editorTab"]');
     writeTabBtn && writeTabBtn.click();
   } else {
     showNotification("❌ Invalid username or password.", "error");
@@ -1228,13 +1228,44 @@ function autoSaveDraft() {
 
 // Init
 initDefaultAdmin();
-loadTheme();
 updateAuthUI();
 updateTopBarAvatar();
 
 // Auto-select Write tab on page load
-const writeTabBtn = document.querySelector('.tabBtn[data-tab="editor"]');
+const writeTabBtn = document.querySelector('.tabBtn[data-tab="editorTab"]');
 if (writeTabBtn) writeTabBtn.click();
+
+// Theme toggle functionality
+if (toggleTheme) {
+  // Set initial icon based on current theme
+  const updateThemeIcon = () => {
+    const isDark = document.body.classList.contains('dark');
+    toggleTheme.textContent = isDark ? '☀️' : '🌙';
+    toggleTheme.setAttribute('title', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+  };
+  updateThemeIcon();
+
+  toggleTheme.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isDark = document.body.classList.contains('dark');
+    // toggle
+    if (isDark) {
+      document.body.classList.remove('dark');
+      document.body.classList.add('light');
+    } else {
+      document.body.classList.remove('light');
+      document.body.classList.add('dark');
+    }
+    const nowDark = document.body.classList.contains('dark');
+    // Persist preference (use unified key)
+    try { localStorage.setItem('ahona_theme', nowDark ? 'dark' : 'light'); } catch (e) {}
+    // Update icon
+    updateThemeIcon();
+    try {
+      showNotification(nowDark ? '🌙 Dark mode enabled' : '☀️ Light mode enabled', 'success');
+    } catch (e) { console.log('Theme switched', nowDark ? 'dark' : 'light'); }
+  });
+}
 
 // Hamburger menu toggle
 const hamburger = document.getElementById("hamburger");
@@ -1261,4 +1292,15 @@ if (hamburger && controls) {
       controls.classList.remove("active");
     }
   });
+  
+  // Close menu when clicking mobile tab navigation buttons
+  const mobileTabNav = document.querySelector('.mobileTabNav');
+  if (mobileTabNav) {
+    mobileTabNav.addEventListener('click', (e) => {
+      if (e.target.classList.contains('tabBtn')) {
+        hamburger.classList.remove('active');
+        controls.classList.remove('active');
+      }
+    });
+  }
 }

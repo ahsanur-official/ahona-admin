@@ -3,11 +3,15 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta http-equiv="Cache-Control" content="public, max-age=3600" />
+    <meta http-equiv="Pragma" content="cache" />
+    <meta http-equiv="Expires" content="3600" />
     <title>Ahona Islam — Admin Panel</title>
     <link rel="stylesheet" href="style.css" />
     <link rel="icon" href="data:," />
   </head>
-  <body>
+  <body class="dark">
+    <script src="init-theme.js"></script>
     <header class="topBar" id="topBar">
       <div class="brand">Ahona Islam — Admin Panel</div>
       <button class="hamburger" id="hamburger" aria-label="Toggle menu">
@@ -19,15 +23,20 @@
       <div class="controls" id="controls">
         <!-- Mobile Tab Navigation (shown inside hamburger drawer) -->
         <nav class="mobileTabNav" aria-label="Mobile navigation">
-          <button class="tabBtn" data-tab="editor">✍️ Write</button>
+          <button class="tabBtn" data-tab="editorTab">✍️ Write</button>
           <button class="tabBtn" data-tab="published">📚 Published</button>
           <button class="tabBtn" data-tab="drafts">📝 Drafts</button>
           <button class="tabBtn" data-tab="analytics">📊 Stats</button>
         </nav>
 
-        <button id="toggleTheme" aria-label="Toggle dark mode">🌙</button>
         <div class="userArea" id="userArea">
+          <button id="toggleTheme" aria-label="Toggle theme">☀️</button>
+          <select id="langSelect" aria-label="Language" title="Language" style="margin-left:8px;padding:6px;border-radius:8px;border:2px solid var(--border);background:transparent;color:var(--text);">
+            <option value="en">EN</option>
+            <option value="bn">বাংলা</option>
+          </select>
           <div id="currentUserName" class="username"></div>
+
           <button id="profileBtn" class="profileBtn">👤 Profile</button>
           <button id="logoutBtn" class="logoutBtn">Log out</button>
         </div>
@@ -36,7 +45,7 @@
 
     <main class="container" id="mainContainer">
       <!-- Write/Editor Tab -->
-      <section id="editor" class="tab-content active">
+      <section id="editorTab" class="tab-content active">
         <section class="editor card">
           <div class="editorHeader">
             <div>
@@ -47,6 +56,7 @@
             </div>
             <div class="editorStats">
               <span id="editorStatus" class="statusBadge">⚠️ Unsaved</span>
+              <span id="lastSavedAt" class="lastSaved">Last saved: —</span>
             </div>
           </div>
 
@@ -88,6 +98,26 @@
             <div class="readingEst">
               ⏱️ <span id="readingEst">0 min</span> read
             </div>
+            <label class="metaLabel">
+              🎯 Goal (words)
+              <input
+                id="wordGoal"
+                type="number"
+                min="50"
+                step="50"
+                placeholder="e.g., 500"
+              />
+            </label>
+            <label class="metaLabel">
+              ✨ Template
+              <select id="templateSelect">
+                <option value="">— insert template —</option>
+                <option value="poem">Poem Starter</option>
+                <option value="shortStory">Short Story Outline</option>
+                <option value="novel">Novel Chapter Starter</option>
+                <option value="loveLetter">Love Letter</option>
+              </select>
+            </label>
           </div>
 
           <div class="toolbar" role="toolbar" aria-label="Text formatting">
@@ -132,7 +162,7 @@
           </div>
 
           <div
-            id="editor"
+            id="editorArea"
             class="editorArea"
             contenteditable="true"
             aria-label="Story content"
@@ -145,12 +175,25 @@
             <span id="paragraphCount">0</span> paragraphs
           </div>
 
+          <div class="goalTracker">
+            <div class="goalInfo">
+              <span id="goalText">Goal: 0 words</span>
+              <span id="goalPercent">0%</span>
+            </div>
+            <div class="goalBar">
+              <div id="goalBarFill"></div>
+            </div>
+          </div>
+
           <div class="editorActions">
             <button id="saveDraft" class="btnSecondary">
               💾 Save as Draft
             </button>
             <button id="publish" class="btnPrimary">🚀 Publish Story</button>
             <button id="preview" class="btnTertiary">👁️ Preview</button>
+            <button id="restoreBackup" class="btnSecondary">
+              ♻️ Restore Backup
+            </button>
             <button id="clear" class="btnDanger">🗑️ Clear</button>
           </div>
         </section>
@@ -177,7 +220,11 @@
             placeholder="Search stories..."
             class="searchInput"
           />
-          <select id="filterPublishedCategory" class="categoryFilter" aria-label="Filter by category">
+          <select
+            id="filterPublishedCategory"
+            class="categoryFilter"
+            aria-label="Filter by category"
+          >
             <option value="">All Categories</option>
             <option value="Novel">📖 Novel</option>
             <option value="Poem">✍️ Poem</option>
@@ -200,7 +247,11 @@
             placeholder="Search drafts..."
             class="searchInput"
           />
-          <select id="filterDraftsCategory" class="categoryFilter" aria-label="Filter drafts by category">
+          <select
+            id="filterDraftsCategory"
+            class="categoryFilter"
+            aria-label="Filter drafts by category"
+          >
             <option value="">All Categories</option>
             <option value="Novel">📖 Novel</option>
             <option value="Poem">✍️ Poem</option>
@@ -301,9 +352,11 @@
               Sign In ✨
             </button>
 
-            <div style="text-align: center; margin-top: 15px; font-size: 14px;">
+            <div class="authToggleWrapper">
               <span id="authToggleText">Don't have an account?</span>
-              <a href="#" id="authToggleLink" style="color: #e74c3c; text-decoration: none; font-weight: 600; margin-left: 5px;">Register here</a>
+              <a href="#" id="authToggleLink" class="authToggleLink"
+                >Register here</a
+              >
             </div>
           </form>
         </div>
@@ -325,6 +378,18 @@
         </div>
       </div>
     </div>
+
+    <!-- Full Post Modal -->
+    <div id="fullPostModal" class="modal hidden">
+      <div class="modalContent fullPostModalContent">
+        <div class="modalHeader">
+          <h3 id="fullPostTitle">Post</h3>
+          <button id="closeFullPost" class="closeBtn">✕</button>
+        </div>
+        <div id="fullPostBody" class="modalBody fullPostBody"></div>
+      </div>
+    </div>
   </body>
   <script type="module" src="script-firebase.js"></script>
+  <script src="script.js"></script>
 </html>
