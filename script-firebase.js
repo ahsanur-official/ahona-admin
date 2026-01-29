@@ -1215,6 +1215,13 @@ tabBtns.forEach((btn) => {
     if (tabName === "published") await renderPublished();
     if (tabName === "drafts") await renderDrafts();
     if (tabName === "analytics") await updateAnalytics();
+    // Auto-hide hamburger drawer on menu/tab click (mobile UX)
+    try {
+      const ham = document.getElementById('hamburger');
+      const ctr = document.getElementById('controls');
+      if (ham) ham.classList.remove('active');
+      if (ctr) ctr.classList.remove('active');
+    } catch (e) {}
   });
 });
 
