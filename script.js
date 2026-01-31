@@ -249,6 +249,10 @@ publishBtn.addEventListener("click", () => {
 
     showNotification("✨ Story published successfully!", "success");
     clearEditor();
+    // Extra: ensure image input and preview are cleared after publish
+    if (postImageInput) postImageInput.value = "";
+    if (imagePreviewContainer) imagePreviewContainer.style.display = "none";
+    if (imagePreview) imagePreview.src = "";
     renderPublished();
     renderDrafts();
     updateAnalytics();
@@ -566,7 +570,15 @@ function loadDraft(draftId) {
   category.value = draft.category || "";
   mood.value = draft.mood;
   document.getElementById("tags").value = (draft.tags || []).join(", ");
-
+  // Show image in preview if present
+  if (draft.image && imagePreview && imagePreviewContainer) {
+    imagePreview.src = draft.image;
+    imagePreviewContainer.style.display = "block";
+  } else if (imagePreview && imagePreviewContainer) {
+    imagePreview.src = "";
+    imagePreviewContainer.style.display = "none";
+  }
+  if (postImageInput) postImageInput.value = "";
   editor.dispatchEvent(new Event("input"));
   tabBtns[0].click();
 }
@@ -627,7 +639,15 @@ function editPost(postId) {
   category.value = post.category || "";
   mood.value = post.mood;
   document.getElementById("tags").value = (post.tags || []).join(", ");
-
+  // Show image in preview if present
+  if (post.image && imagePreview && imagePreviewContainer) {
+    imagePreview.src = post.image;
+    imagePreviewContainer.style.display = "block";
+  } else if (imagePreview && imagePreviewContainer) {
+    imagePreview.src = "";
+    imagePreviewContainer.style.display = "none";
+  }
+  if (postImageInput) postImageInput.value = "";
   editor.dispatchEvent(new Event("input"));
   tabBtns[0].click();
 }
@@ -1232,6 +1252,12 @@ function autoSaveDraft() {
   const drafts = loadDrafts();
   if (!drafts[user.username]) drafts[user.username] = [];
 
+  let imageData = "";
+  if (postImageInput && postImageInput.files && postImageInput.files[0]) {
+    imageData = imagePreview.src || "";
+  } else if (imagePreview && imagePreview.src) {
+    imageData = imagePreview.src;
+  }
   const draft = {
     id: currentEditingDraftId || Date.now().toString(),
     title: titleValue,
@@ -1248,6 +1274,7 @@ function autoSaveDraft() {
           ?.createdAt || Date.now()
       : Date.now(),
     savedAt: Date.now(),
+    image: imageData,
   };
 
   const existingIndex = drafts[user.username].findIndex(
