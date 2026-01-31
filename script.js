@@ -37,6 +37,10 @@ import {
 const SETTINGS_KEY = "diary_settings_v1";
 
 // DOM Elements
+const postImageInput = document.getElementById("postImage");
+const imagePreviewContainer = document.getElementById("imagePreviewContainer");
+const imagePreview = document.getElementById("imagePreview");
+const removeImageBtn = document.getElementById("removeImageBtn");
 const editor = document.getElementById("editorArea");
 const titleInput = document.getElementById("title");
 const category = document.getElementById("category");
@@ -198,26 +202,57 @@ publishBtn.addEventListener("click", () => {
     return;
   }
 
-  const posts = loadPosts();
-  const newPost = {
-    id: Date.now().toString(),
-    title: titleInput.value,
-    content: editor.innerHTML,
-    date: new Date().toISOString().split("T")[0],
-    category: category.value || "Short Story",
-    mood: mood.value,
-    tags: document
-      .getElementById("tags")
-      .value.split(",")
-      .map((t) => t.trim())
-      .filter(Boolean),
-    author: user.username,
-    createdAt: Date.now(),
-    published: true,
-  };
 
-  posts.push(newPost);
-  savePosts(posts);
+  const posts = loadPosts();
+  let imageData = "";
+  if (postImageInput && postImageInput.files && postImageInput.files[0]) {
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      imageData = e.target.result;
+      finalizePublish(imageData);
+    };
+    reader.readAsDataURL(postImageInput.files[0]);
+    return; // Wait for FileReader
+  } else {
+    finalizePublish("");
+  }
+
+  function finalizePublish(imageData) {
+    const newPost = {
+      id: Date.now().toString(),
+      title: titleInput.value,
+      content: editor.innerHTML,
+      date: new Date().toISOString().split("T")[0],
+      category: category.value || "Short Story",
+      mood: mood.value,
+      tags: document
+        .getElementById("tags")
+        .value.split(",")
+        .map((t) => t.trim())
+        .filter(Boolean),
+      author: user.username,
+      createdAt: Date.now(),
+      published: true,
+      image: imageData,
+    };
+    posts.push(newPost);
+    savePosts(posts);
+
+    // Remove from drafts if it was a draft
+    const drafts = loadDrafts();
+    if (drafts[user.username]) {
+      drafts[user.username] = drafts[user.username].filter(
+        (d) => d.id !== newPost.id,
+      );
+      saveDrafts(drafts);
+    }
+
+    showNotification("✨ Story published successfully!", "success");
+    clearEditor();
+    renderPublished();
+    renderDrafts();
+    updateAnalytics();
+  }
 
   // Remove from drafts if it was a draft
   const drafts = loadDrafts();
@@ -275,6 +310,11 @@ function clearEditor() {
   readingEst.textContent = "0 min";
   document.getElementById("paragraphCount").textContent = "0";
   currentEditingDraftId = null;
+
+  // Clear image preview and input
+  if (postImageInput) postImageInput.value = "";
+  if (imagePreviewContainer) imagePreviewContainer.style.display = "none";
+  if (imagePreview) imagePreview.src = "";
 
   const status = document.getElementById("editorStatus");
   if (status) {
@@ -413,6 +453,7 @@ function renderPublished() {
 
       return `
       <div class="postCard">
+        ${p.image ? `<div style=\"width:100%;text-align:center;margin-bottom:12px\"><img src=\"${p.image}\" alt=\"Post Image\" style=\"max-width:100%;max-height:180px;border-radius:10px;box-shadow:0 2px 8px #e6394620;\"></div>` : ""}
         <div class="postCardHeader">
           <h3 class="postCardTitle">${p.title}</h3>
           <div style="display:flex;gap:8px">
@@ -422,7 +463,7 @@ function renderPublished() {
         </div>
         <div class="postCardMeta">
           <span>${new Date(p.date).toLocaleDateString()}</span>
-          ${p.category ? `<span class="postMoodTag" style="background:rgba(67,123,157,0.15);color:#457b9d">${categoryIcon} ${p.category}</span>` : ""}
+          ${p.category ? `<span class=\"postMoodTag\" style=\"background:rgba(67,123,157,0.15);color:#457b9d\">${categoryIcon} ${p.category}</span>` : ""}
           <span class="postMoodTag" style="background:rgba(230,57,70,0.15);color:#e63946">${p.mood || "No mood"}</span>
           <span>⏱️ ${estimateReadingTime(p.content).minutes} min</span>
         </div>
@@ -487,6 +528,7 @@ function renderDrafts() {
 
       return `
       <div class="postCard">
+        ${d.image ? `<div style=\"width:100%;text-align:center;margin-bottom:12px\"><img src=\"${d.image}\" alt=\"Draft Image\" style=\"max-width:100%;max-height:180px;border-radius:10px;box-shadow:0 2px 8px #e6394620;\"></div>` : ""}
         <div class="postCardHeader">
           <h3 class="postCardTitle">${d.title}</h3>
           <span style="font-size:12px;color:var(--secondary)">📝 ${new Date(d.savedAt).toLocaleDateString()}</span>
@@ -614,12 +656,13 @@ function viewPost(postId) {
 
   previewContent.innerHTML = `
     <article class="post card" style="max-width:100%;border:none;box-shadow:none;padding:0">
+      ${post.image ? `<div style=\"width:100%;text-align:center;margin-bottom:18px\"><img src=\"${post.image}\" alt=\"Post Image\" style=\"max-width:100%;max-height:260px;border-radius:12px;box-shadow:0 2px 12px #e6394620;\"></div>` : ""}
       <div class="postHeader" style="margin-bottom:16px">
         <h2 style="margin:0 0 12px 0;color:var(--text);font-size:28px;line-height:1.3">${post.title}</h2>
         <div class="postMeta" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;font-size:14px;color:var(--secondary)">
           <span>📅 ${new Date(post.date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</span>
-          ${post.category ? `<span style="padding:4px 12px;background:rgba(67,123,157,0.15);color:var(--accent-tertiary);border-radius:12px;font-weight:600">${categoryIcon} ${post.category}</span>` : ""}
-          ${post.mood ? `<span style="padding:4px 12px;background:rgba(230,57,70,0.15);color:var(--accent-primary);border-radius:12px;font-weight:600">🎭 ${post.mood}</span>` : ""}
+          ${post.category ? `<span style=\"padding:4px 12px;background:rgba(67,123,157,0.15);color:var(--accent-tertiary);border-radius:12px;font-weight:600\">${categoryIcon} ${post.category}</span>` : ""}
+          ${post.mood ? `<span style=\"padding:4px 12px;background:rgba(230,57,70,0.15);color:var(--accent-primary);border-radius:12px;font-weight:600\">🎭 ${post.mood}</span>` : ""}
           <span>⏱️ ${estimate.minutes} min read</span>
           <span>📝 ${estimate.words} words</span>
         </div>
@@ -1227,6 +1270,28 @@ function autoSaveDraft() {
 }
 
 // Init
+// Image upload preview and remove logic
+if (postImageInput && imagePreview && imagePreviewContainer && removeImageBtn) {
+  postImageInput.addEventListener("change", function () {
+    const file = this.files && this.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        imagePreview.src = e.target.result;
+        imagePreviewContainer.style.display = "block";
+      };
+      reader.readAsDataURL(file);
+    } else {
+      imagePreview.src = "";
+      imagePreviewContainer.style.display = "none";
+    }
+  });
+  removeImageBtn.addEventListener("click", function () {
+    postImageInput.value = "";
+    imagePreview.src = "";
+    imagePreviewContainer.style.display = "none";
+  });
+}
 initDefaultAdmin();
 updateAuthUI();
 updateTopBarAvatar();

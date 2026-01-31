@@ -1,3 +1,97 @@
+/* Image Upload Section Styling */
+.imageUploadSection {
+  background: linear-gradient(120deg, #f77f88 0%, #e63946 60%, #457b9d 100%);
+  border-radius: 14px;
+  padding: 22px 24px 18px 24px;
+  margin: 26px 0 20px 0;
+  box-shadow: 0 4px 18px 0 rgba(230,57,70,0.13), 0 1.5px 8px 0 rgba(67,123,157,0.10);
+  border: 2.5px solid #fff2;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow 0.2s, border 0.2s;
+}
+
+.imageUploadSection:hover {
+  box-shadow: 0 6px 28px 0 rgba(230,57,70,0.18), 0 2px 12px 0 rgba(67,123,157,0.13);
+  border-color: var(--accent-primary);
+}
+
+.imageUploadSection label {
+  font-size: 17px;
+  color: #fff;
+  font-weight: 700;
+  margin-bottom: 7px;
+  text-shadow: 0 2px 8px #e6394680, 0 1px 2px #457b9d80;
+  letter-spacing: 0.5px;
+}
+
+#postImage {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 2px solid #fff8;
+  background: rgba(255,255,255,0.18);
+  color: #e63946;
+  font-size: 15px;
+  margin-top: 4px;
+  font-weight: 600;
+  box-shadow: 0 1px 4px #e6394620;
+  transition: border 0.18s, background 0.18s;
+}
+#postImage:focus, #postImage:hover {
+  border-color: #f77f88;
+  background: #fff3;
+}
+
+#imagePreviewContainer {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 10px;
+  background: linear-gradient(90deg, #fff8, #f77f8820 80%);
+  border-radius: 12px;
+  padding: 12px 18px;
+  box-shadow: 0 2px 12px #e6394620;
+  border: 2px solid #f77f88;
+  transition: box-shadow 0.18s, border 0.18s;
+}
+
+#imagePreview {
+  max-width: 170px;
+  max-height: 170px;
+  border-radius: 10px;
+  border: 2.5px solid #e63946;
+  object-fit: cover;
+  box-shadow: 0 2px 12px #f77f8850, 0 1px 4px #457b9d30;
+  background: #fff;
+  transition: border 0.18s;
+}
+#imagePreview:hover {
+  border-color: #457b9d;
+}
+
+#removeImageBtn {
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: 2px solid #457b9d;
+  background: linear-gradient(90deg, #e63946 60%, #f77f88 100%);
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  box-shadow: 0 1px 6px #457b9d30;
+  transition: background 0.18s, border 0.18s, color 0.18s;
+  letter-spacing: 0.5px;
+}
+#removeImageBtn:hover {
+  background: linear-gradient(90deg, #457b9d 0%, #e63946 100%);
+  color: #fff;
+  border-color: #e63946;
+  box-shadow: 0 2px 12px #e6394620;
+}
 :root{
   --bg-light:#fafaf8;
   --bg-dark:#0d1117;

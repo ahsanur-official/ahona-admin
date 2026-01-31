@@ -162,12 +162,23 @@
           </div>
 
           <div
+
             id="editorArea"
             class="editorArea"
             contenteditable="true"
             aria-label="Story content"
             placeholder="Write your story here... You can use the formatting tools above."
           ></div>
+
+          <!-- Image Upload Option -->
+          <div class="imageUploadSection" style="margin: 18px 0;">
+            <label for="postImage" style="font-weight: 500;">📷 Add a picture (optional):</label>
+            <input type="file" id="postImage" accept="image/*" style="margin-left: 10px;" />
+            <div id="imagePreviewContainer" style="margin-top: 10px; display: none;">
+              <img id="imagePreview" src="" alt="Image Preview" style="max-width: 220px; max-height: 220px; border-radius: 8px; border: 1px solid #ccc;" />
+              <button id="removeImageBtn" type="button" style="margin-left: 10px;">Remove</button>
+            </div>
+          </div>
 
           <div class="charCount">
             <span id="charCount">0</span> characters ·
