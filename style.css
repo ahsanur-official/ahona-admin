@@ -36,6 +36,7 @@
   background: rgba(255,255,255,0.18);
   color: #e63946;
   font-size: 15px;
+  cursor: pointer;
   margin-top: 4px;
   font-weight: 600;
   box-shadow: 0 1px 4px #e6394620;
