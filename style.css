@@ -293,8 +293,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 56px;
-  height: 56px;
+  width: 52px;
+  height: 52px;
   flex-shrink: 0;
 }
 
@@ -315,8 +315,8 @@ body {
 }
 
 .profileBtn img {
-  width: 82px !important;
-  height: 82px !important;
+  width: 48px !important;
+  height: 48px !important;
   border-radius: 50% !important;
   object-fit: cover !important;
   border: none !important;
@@ -2106,6 +2106,13 @@ body {
   .profileBtn {
     width: 100%;
     justify-content: center;
+    width: 56px;
+    height: 56px;
+  }
+
+  .profileBtn img {
+    width: 82px !important;
+    height: 82px !important;
   }
 
   .logoutBtn {
