@@ -29,6 +29,14 @@ import {
   isPostLikedByUser,
   getPublishedPosts,
   incrementViewCount,
+  collection,
+  getDocs,
+  deleteDoc,
+  doc,
+  query,
+  orderBy,
+  getDoc,
+  updateDoc,
 } from "../firebase-config.js";
 
 // Admin Panel - Full-Featured Post Management
@@ -128,21 +136,15 @@ function updateTopBarAvatar() {
   const user = currentUser();
   if (!user) return;
 
-  const profileBtnText =
-    profileBtn.querySelector(".profileBtnText") || profileBtn;
-
   if (user.profilePic) {
     if (!profileBtn.querySelector(".topBarAvatar")) {
       const avatarImg = document.createElement("img");
       avatarImg.className = "topBarAvatar";
       avatarImg.src = user.profilePic;
       avatarImg.alt = "Profile";
+      avatarImg.style.cssText = "width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--accent-primary);margin-right:8px";
       profileBtn.innerHTML = "";
       profileBtn.appendChild(avatarImg);
-      const span = document.createElement("span");
-      span.className = "profileBtnText";
-      span.textContent = " Profile";
-      profileBtn.appendChild(span);
     } else {
       profileBtn.querySelector(".topBarAvatar").src = user.profilePic;
     }
@@ -256,6 +258,7 @@ publishBtn.addEventListener("click", () => {
     renderPublished();
     renderDrafts();
     updateAnalytics();
+    refreshAnalyticsIfVisible();
   }
 
   // Remove from drafts if it was a draft
@@ -272,6 +275,7 @@ publishBtn.addEventListener("click", () => {
   renderPublished();
   renderDrafts();
   updateAnalytics();
+  refreshAnalyticsIfVisible();
 });
 
 // Save draft
@@ -290,6 +294,7 @@ saveDraftBtn.addEventListener("click", () => {
   autoSaveDraft();
   showNotification("✅ Draft saved successfully!", "success");
   renderDrafts();
+  refreshAnalyticsIfVisible();
 });
 
 // Clear editor
@@ -627,6 +632,7 @@ async function deletePost(postId) {
   showNotification("✅ Story deleted successfully!", "success");
   renderPublished();
   updateAnalytics();
+  refreshAnalyticsIfVisible();
 }
 
 // Edit post (load to editor)
@@ -706,6 +712,7 @@ function updateAnalytics() {
     (p) => p.author === user.username && p.published,
   );
   const drafts = loadDrafts()[user.username] || [];
+  
   // Data loaded from Firebase - using empty objects
   const likes = {};
   const comments = {};
@@ -713,23 +720,34 @@ function updateAnalytics() {
   let totalLikes = 0;
   let totalComments = 0;
   let totalWords = 0;
+  let totalReads = 0;
 
   posts.forEach((p) => {
     totalLikes += likes[p.id] || 0;
     totalComments += (comments[p.id] || []).length;
+    totalReads += p.views || 0;
     const text =
       new DOMParser().parseFromString(p.content, "text/html").body
         .textContent || "";
     totalWords += text.trim().split(/\s+/).length;
   });
 
+  // Get total user accounts (readers) - Load dynamically from Firebase
+  loadAllUsers().then(allUsers => {
+    if (allUsers && allUsers.length > 0) {
+      document.getElementById("totalReaders").textContent = allUsers.length;
+    } else {
+      document.getElementById("totalReaders").textContent = "0";
+    }
+  }).catch(e => {
+    console.log('Note: User count loading from Firebase');
+    document.getElementById("totalReaders").textContent = "—";
+  });
+
   document.getElementById("totalPosts").textContent = posts.length;
   document.getElementById("totalDrafts").textContent = drafts.length;
   document.getElementById("totalLikes").textContent = totalLikes;
   document.getElementById("totalComments").textContent = totalComments;
-  document.getElementById("totalReaders").textContent = (
-    Math.random() * 100
-  ).toFixed(0); // Placeholder
   document.getElementById("avgReadingTime").textContent =
     posts.length > 0
       ? Math.round(totalWords / posts.length / 200) + " min"
@@ -751,21 +769,143 @@ function updateAnalytics() {
     recent ||
     '<p style="color:var(--secondary);font-size:13px">No recent activity</p>';
 
-  // Top stories
+  // Top stories (by likes)
   const topStories = document.getElementById("topStories");
-  const sorted = posts
+  const sortedByLikes = [...posts]
     .sort((a, b) => (likes[b.id] || 0) - (likes[a.id] || 0))
     .slice(0, 5);
-  const topList = sorted
+  const topList = sortedByLikes
     .map((p) => {
       return `<div class="topStoryItem">
-      <strong>${p.title}</strong> - ${likes[p.id] || 0} likes
+      <strong>${p.title}</strong> - ${likes[p.id] || 0} ❤️ | ${p.views || 0} 👁️
     </div>`;
     })
     .join("");
   topStories.innerHTML =
     topList ||
     '<p style="color:var(--secondary);font-size:13px">No stories yet</p>';
+
+  // Popular posts (by views/reads)
+  const popularPostsList = document.getElementById("popularPostsList");
+  const sortedByViews = [...posts]
+    .sort((a, b) => (b.views || 0) - (a.views || 0))
+    .slice(0, 5);
+  const popularList = sortedByViews
+    .map((p) => {
+      return `<div class="postStatItem">
+      <div style="flex:1">
+        <strong>${p.title}</strong>
+        <p style="font-size:12px;color:var(--secondary);margin:4px 0">Published: ${new Date(p.createdAt).toLocaleDateString()}</p>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:18px;font-weight:700;color:var(--accent-primary)">${p.views || 0}</div>
+        <div style="font-size:11px;color:var(--secondary)">views</div>
+      </div>
+    </div>`;
+    })
+    .join("");
+  popularPostsList.innerHTML =
+    popularList ||
+    '<p style="color:var(--secondary);font-size:13px">No posts yet</p>';
+
+  // Newest posts (by date, latest first)
+  const newestPostsList = document.getElementById("newestPostsList");
+  const sortedByNewest = [...posts]
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .slice(0, 5);
+  const newestList = sortedByNewest
+    .map((p) => {
+      return `<div class="postStatItem">
+      <div style="flex:1">
+        <strong>${p.title}</strong>
+        <p style="font-size:12px;color:var(--secondary);margin:4px 0">Published: ${new Date(p.createdAt).toLocaleDateString()}</p>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:16px">🆕</div>
+        <div style="font-size:11px;color:var(--secondary)">${p.views || 0} reads</div>
+      </div>
+    </div>`;
+    })
+    .join("");
+  newestPostsList.innerHTML =
+    newestList ||
+    '<p style="color:var(--secondary);font-size:13px">No posts yet</p>';
+
+  // Oldest posts (by date, earliest first)
+  const oldestPostsList = document.getElementById("oldestPostsList");
+  const sortedByOldest = [...posts]
+    .sort((a, b) => a.createdAt - b.createdAt)
+    .slice(0, 5);
+  const oldestList = sortedByOldest
+    .map((p) => {
+      return `<div class="postStatItem">
+      <div style="flex:1">
+        <strong>${p.title}</strong>
+        <p style="font-size:12px;color:var(--secondary);margin:4px 0">Published: ${new Date(p.createdAt).toLocaleDateString()}</p>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:16px">📖</div>
+        <div style="font-size:11px;color:var(--secondary)">${p.views || 0} reads</div>
+      </div>
+    </div>`;
+    })
+    .join("");
+  oldestPostsList.innerHTML =
+    oldestList ||
+    '<p style="color:var(--secondary);font-size:13px">No posts yet</p>';
+
+  // All posts with read counts
+  const allPostsReadStats = document.getElementById("allPostsReadStats");
+  const allPostsList = [...posts]
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .map((p) => {
+      return `<div class="postStatItem" style="border-left:3px solid ${p.views > 50 ? 'var(--accent-success)' : p.views > 20 ? 'var(--accent-primary)' : 'var(--border)'}">
+      <div style="flex:1">
+        <strong>${p.title}</strong>
+        <p style="font-size:12px;color:var(--secondary);margin:4px 0">
+          ${new Date(p.createdAt).toLocaleDateString()} | 
+          <span style="color:var(--accent-secondary)">${p.category || 'Uncategorized'}</span>
+        </p>
+      </div>
+      <div style="text-align:right;display:flex;gap:16px;align-items:center">
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--accent-primary)">${p.views || 0}</div>
+          <div style="font-size:10px;color:var(--secondary)">👁️ reads</div>
+        </div>
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--accent-secondary)">${p.likes || 0}</div>
+          <div style="font-size:10px;color:var(--secondary)">❤️ likes</div>
+        </div>
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--accent-tertiary)">${(comments[p.id] || []).length}</div>
+          <div style="font-size:10px;color:var(--secondary)">💬 comments</div>
+        </div>
+      </div>
+    </div>`;
+    })
+    .join("");
+  allPostsReadStats.innerHTML =
+    allPostsList ||
+    '<p style="color:var(--secondary);font-size:13px">No posts yet</p>';
+
+  // Load admin analytics if user is admin
+  isCurrentUserAdmin().then(isAdmin => {
+    const adminSection = document.getElementById("adminAnalyticsSection");
+    if (isAdmin && adminSection) {
+      adminSection.style.display = "block";
+      loadAdminAnalytics();
+    } else if (adminSection) {
+      adminSection.style.display = "none";
+    }
+  });
+}
+
+// Trigger analytics refresh - called whenever data changes
+function refreshAnalyticsIfVisible() {
+  const analyticsTab = document.getElementById("analytics");
+  if (analyticsTab && analyticsTab.classList.contains("active")) {
+    updateAnalytics();
+  }
 }
 
 // Profile
@@ -888,6 +1028,13 @@ profileBtn.addEventListener("click", () => {
     <div class="profileSection">
       <h4>⚙️ Preferences</h4>
       <div style="display:flex;flex-direction:column;gap:12px;margin-top:12px">
+        <div class="formGroup">
+          <label for="langSelectProfile">🌐 Language</label>
+          <select id="langSelectProfile" style="padding:8px 12px;border-radius:8px;border:2px solid var(--border);background:var(--bg);color:var(--text);width:100%;font-size:14px;">
+            <option value="en">EN - English</option>
+            <option value="bn">বাংলা - Bangla</option>
+          </select>
+        </div>
         <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
           <input type="checkbox" id="autoSaveEnabled" ${user.autoSave !== false ? "checked" : ""} style="width:18px;height:18px;cursor:pointer" />
           <span style="color:var(--text)">💾 Enable auto-save drafts (30s interval)</span>
@@ -1029,10 +1176,23 @@ profileBtn.addEventListener("click", () => {
     }
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
+      const imageData = event.target.result;
+      
+      // Update in local storage first for immediate UI update
       const users = loadUsers();
-      users[user.username].profilePic = event.target.result;
+      users[user.username].profilePic = imageData;
       saveUsers(users);
+      
+      // Also update in Firebase for persistence across devices
+      try {
+        await updateDoc(doc(db, 'users', user.uid), {
+          photoUrl: imageData
+        });
+      } catch (e) {
+        console.log('Firebase profile picture update note:', e.message);
+      }
+      
       showNotification("✅ Profile picture updated!", "success");
       updateTopBarAvatar();
       profileBtn.click(); // Reload profile modal
@@ -1120,6 +1280,20 @@ profileBtn.addEventListener("click", () => {
     URL.revokeObjectURL(url);
     showNotification("💾 All data exported successfully!", "success");
   });
+
+  // Language selector (in profile)
+  const langSelectProfile = document.getElementById("langSelectProfile");
+  if (langSelectProfile) {
+    // Set current language from localStorage or default to 'en'
+    const currentLang = localStorage.getItem("selectedLanguage") || "en";
+    langSelectProfile.value = currentLang;
+
+    langSelectProfile.addEventListener("change", (e) => {
+      const newLang = e.target.value;
+      localStorage.setItem("selectedLanguage", newLang);
+      showNotification(newLang === "en" ? "🌐 Language changed to English" : "🌐 ভাষা পরিবর্তিত হয়েছে বাংলা", "success");
+    });
+  }
 
   profileModal.classList.remove("hidden");
 });
@@ -1395,4 +1569,320 @@ if (hamburger && controls) {
       }
     });
   }
+}
+
+// ============================================
+// ADMIN PANEL FUNCTIONS
+// ============================================
+
+// Check if current user is admin
+async function isCurrentUserAdmin() {
+  const user = currentUser();
+  if (!user) return false;
+  
+  try {
+    const userDoc = await getDoc(doc(db, 'users', user.uid));
+    return userDoc.exists() && userDoc.data().isAdmin === true;
+  } catch (e) {
+    console.error('Error checking admin status:', e);
+    return false;
+  }
+}
+
+// Load all users (admin only)
+async function loadAllUsers() {
+  try {
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef, orderBy('createdAt', 'desc'));
+    const snap = await getDocs(q);
+    const users = [];
+    
+    snap.forEach(doc => {
+      users.push({ uid: doc.id, ...doc.data() });
+    });
+    
+    return users;
+  } catch (e) {
+    console.error('Error loading users:', e);
+    return [];
+  }
+}
+
+// Toggle admin status for a user
+async function toggleAdminStatus(userId, newAdminStatus) {
+  try {
+    await updateDoc(doc(db, 'users', userId), {
+      isAdmin: newAdminStatus
+    });
+    showNotification(`✅ User ${newAdminStatus ? 'promoted to admin' : 'removed from admin'}.`, 'success');
+    renderUsersTab();
+    updateAnalytics();
+    refreshAnalyticsIfVisible();
+  } catch (e) {
+    console.error('Error updating admin status:', e);
+    showNotification('❌ Failed to update user status.', 'error');
+  }
+}
+
+// Delete a user (admin only)
+async function deleteUserAccount(userId) {
+  try {
+    await deleteDoc(doc(db, 'users', userId));
+    showNotification('✅ User deleted.', 'success');
+    renderUsersTab();
+    updateAnalytics();
+    refreshAnalyticsIfVisible();
+  } catch (e) {
+    console.error('Error deleting user:', e);
+    showNotification('❌ Failed to delete user.', 'error');
+  }
+}
+
+// Load all posts (admin moderation)
+async function loadAllPosts() {
+  try {
+    const postsRef = collection(db, 'posts');
+    const q = query(postsRef, orderBy('createdAt', 'desc'));
+    const snap = await getDocs(q);
+    const posts = [];
+    
+    snap.forEach(doc => {
+      posts.push({ id: doc.id, ...doc.data() });
+    });
+    
+    return posts;
+  } catch (e) {
+    console.error('Error loading posts:', e);
+    return [];
+  }
+}
+
+// Delete post (admin only)
+async function adminDeletePost(postId) {
+  const confirmed = await showConfirm(
+    '🗑️ Delete Post',
+    'Are you sure you want to delete this post? This cannot be undone.',
+    'Delete',
+    'Cancel'
+  );
+  
+  if (!confirmed) return;
+  
+  try {
+    await deleteDoc(doc(db, 'posts', postId));
+    showNotification('✅ Post deleted.', 'success');
+    renderModerationTab();
+    updateAnalytics();
+    refreshAnalyticsIfVisible();
+  } catch (e) {
+    console.error('Error deleting post:', e);
+    showNotification('❌ Failed to delete post.', 'error');
+  }
+}
+
+// Load all comments (admin moderation)
+async function loadAllComments() {
+  try {
+    const commentsRef = collection(db, 'comments');
+    const q = query(commentsRef, orderBy('createdAt', 'desc'));
+    const snap = await getDocs(q);
+    const comments = [];
+    
+    snap.forEach(doc => {
+      comments.push({ id: doc.id, ...doc.data() });
+    });
+    
+    return comments;
+  } catch (e) {
+    console.error('Error loading comments:', e);
+    return [];
+  }
+}
+
+// Delete comment (admin only)
+async function adminDeleteComment(commentId) {
+  const confirmed = await showConfirm(
+    '🗑️ Delete Comment',
+    'Are you sure you want to delete this comment?',
+    'Delete',
+    'Cancel'
+  );
+  
+  if (!confirmed) return;
+  
+  try {
+    await deleteDoc(doc(db, 'comments', commentId));
+    showNotification('✅ Comment deleted.', 'success');
+    renderModerationTab();
+    updateAnalytics();
+    refreshAnalyticsIfVisible();
+  } catch (e) {
+    console.error('Error deleting comment:', e);
+    showNotification('❌ Failed to delete comment.', 'error');
+  }
+}
+
+// Render moderation tab
+async function renderModerationTab() {
+  const postsModerationList = document.getElementById('postsModerationList');
+  const commentsModerationList = document.getElementById('commentsModerationList');
+  
+  if (!postsModerationList || !commentsModerationList) return;
+  
+  // Load posts
+  const posts = await loadAllPosts();
+  if (posts.length === 0) {
+    postsModerationList.innerHTML = '<p style="text-align:center;color:var(--secondary)">No posts to moderate.</p>';
+  } else {
+    postsModerationList.innerHTML = posts.slice(0, 20).map(p => `
+      <div class="moderationItem">
+        <div>
+          <strong>${p.title || 'Untitled'}</strong>
+          <p style="font-size:12px;color:var(--secondary)">By: ${p.authorName || 'Unknown'} | Status: ${p.status}</p>
+          <p style="font-size:12px;margin:4px 0">${(p.content || '').substring(0, 100).replace(/<[^>]*>/g, '')}...</p>
+        </div>
+        <button class="btnDanger" onclick="adminDeletePost('${p.id}')">🗑️ Delete</button>
+      </div>
+    `).join('');
+  }
+  
+  // Load comments
+  const comments = await loadAllComments();
+  if (comments.length === 0) {
+    commentsModerationList.innerHTML = '<p style="text-align:center;color:var(--secondary)">No comments to moderate.</p>';
+  } else {
+    commentsModerationList.innerHTML = comments.slice(0, 20).map(c => `
+      <div class="moderationItem">
+        <div>
+          <strong>Comment on Post: ${c.postId || 'Unknown'}</strong>
+          <p style="font-size:12px;color:var(--secondary)">By: ${c.userName || 'Anonymous'}</p>
+          <p style="font-size:12px;margin:4px 0">${(c.text || '').substring(0, 100)}...</p>
+        </div>
+        <button class="btnDanger" onclick="adminDeleteComment('${c.id}')">🗑️ Delete</button>
+      </div>
+    `).join('');
+  }
+}
+
+// Render users tab
+async function renderUsersTab() {
+  const usersList = document.getElementById('usersList');
+  if (!usersList) return;
+  
+  const users = await loadAllUsers();
+  const searchTerm = (document.getElementById('searchUsers')?.value || '').toLowerCase();
+  
+  const filtered = users.filter(u => 
+    (u.displayName || '').toLowerCase().includes(searchTerm) ||
+    (u.email || '').toLowerCase().includes(searchTerm)
+  );
+  
+  if (filtered.length === 0) {
+    usersList.innerHTML = '<p style="text-align:center;color:var(--secondary);padding:20px">No users found.</p>';
+    return;
+  }
+  
+  usersList.innerHTML = filtered.map(u => `
+    <div class="userItemCard">
+      <div class="userInfo">
+        ${u.photoUrl ? `<img src="${u.photoUrl}" alt="${u.displayName}" class="userAvatar" style="width:40px;height:40px;border-radius:50%;margin-right:10px">` : '<div style="width:40px;height:40px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;margin-right:10px">👤</div>'}
+        <div>
+          <strong>${u.displayName || u.email}</strong>
+          <p style="font-size:12px;color:var(--secondary)">${u.email}</p>
+          <p style="font-size:11px;color:var(--secondary)">Joined: ${u.createdAt ? new Date(u.createdAt.toDate?.() || u.createdAt).toLocaleDateString() : 'N/A'}</p>
+        </div>
+      </div>
+      <div class="userActions">
+        ${u.isAdmin ? 
+          `<button class="btnSecondary" onclick="toggleAdminStatus('${u.uid}', false)">👑 Revoke Admin</button>` :
+          `<button class="btnSecondary" onclick="toggleAdminStatus('${u.uid}', true)">⭐ Make Admin</button>`
+        }
+        <button class="btnDanger" onclick="deleteUserAccount('${u.uid}')">🗑️ Delete</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Load admin analytics
+async function loadAdminAnalytics() {
+  try {
+    const users = await loadAllUsers();
+    const posts = await loadAllPosts();
+    const comments = await loadAllComments();
+    
+    // Count admins
+    const adminCount = users.filter(u => u.isAdmin === true).length;
+    
+    // Count total likes (estimate from posts)
+    const totalLikes = posts.reduce((sum, p) => sum + (p.likes || 0), 0);
+    
+    // Try to load analytics collection
+    let notificationCount = 0;
+    try {
+      const notifRef = collection(db, 'notifications');
+      const notifSnap = await getDocs(notifRef);
+      notificationCount = notifSnap.size;
+    } catch (e) {
+      console.log('Notifications collection not accessible');
+    }
+    
+    // Update UI
+    document.getElementById('totalUsers').textContent = users.length;
+    document.getElementById('totalAdmins').textContent = adminCount;
+    document.getElementById('platformPosts').textContent = posts.length;
+    document.getElementById('platformComments').textContent = comments.length;
+    document.getElementById('platformLikes').textContent = totalLikes;
+    document.getElementById('totalNotifications').textContent = notificationCount;
+    
+    // System data summary
+    const systemDataContainer = document.getElementById('systemDataContainer');
+    if (systemDataContainer) {
+      systemDataContainer.innerHTML = `
+        <div style="padding:16px;background:var(--bg-card);border-radius:8px;border:1px solid var(--border)">
+          <p><strong>Platform Summary:</strong></p>
+          <ul style="list-style:none;padding:8px 0;margin:0;font-size:14px;">
+            <li>👥 Active Users: ${users.length}</li>
+            <li>👑 Admin Users: ${adminCount}</li>
+            <li>📝 Total Posts: ${posts.length}</li>
+            <li>💬 Total Comments: ${comments.length}</li>
+            <li>❤️ Total Likes: ${totalLikes}</li>
+            <li>🔔 Notifications: ${notificationCount}</li>
+          </ul>
+        </div>
+      `;
+    }
+  } catch (e) {
+    console.error('Error loading admin analytics:', e);
+    showNotification('❌ Failed to load analytics.', 'error');
+  }
+}
+
+// Update tab content when admin tabs are viewed
+const oldTabListener = document.addEventListener;
+document.addEventListener('click', async (e) => {
+  if (e.target.classList.contains('tabBtn')) {
+    const tabName = e.target.dataset.tab;
+    
+    // Check if user is admin before showing admin tabs
+    const isAdmin = await isCurrentUserAdmin();
+    if (!isAdmin && ['moderation', 'users'].includes(tabName)) {
+      showNotification('⛔ You do not have admin access.', 'error');
+      e.preventDefault();
+      return;
+    }
+    
+    if (tabName === 'moderation') {
+      renderModerationTab();
+    } else if (tabName === 'users') {
+      renderUsersTab();
+    }
+  }
+});
+
+// Search users in real-time
+const searchUsersInput = document.getElementById('searchUsers');
+if (searchUsersInput) {
+  searchUsersInput.addEventListener('input', () => {
+    renderUsersTab();
+  });
 }

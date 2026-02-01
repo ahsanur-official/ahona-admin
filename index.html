@@ -27,16 +27,12 @@
           <button class="tabBtn" data-tab="published">📚 Published</button>
           <button class="tabBtn" data-tab="drafts">📝 Drafts</button>
           <button class="tabBtn" data-tab="analytics">📊 Stats</button>
+          <button class="tabBtn" data-tab="moderation">🚨 Moderation</button>
+          <button class="tabBtn" data-tab="users">👥 Users</button>
         </nav>
 
         <div class="userArea" id="userArea">
           <button id="toggleTheme" aria-label="Toggle theme">☀️</button>
-          <select id="langSelect" aria-label="Language" title="Language" style="margin-left:8px;padding:6px;border-radius:8px;border:2px solid var(--border);background:transparent;color:var(--text);">
-            <option value="en">EN</option>
-            <option value="bn">বাংলা</option>
-          </select>
-          <div id="currentUserName" class="username"></div>
-
           <button id="profileBtn" class="profileBtn">👤 Profile</button>
           <button id="logoutBtn" class="logoutBtn">Log out</button>
         </div>
@@ -308,9 +304,88 @@
         </div>
 
         <div class="analyticsSection">
-          <h3>Top Stories</h3>
+          <h3>📚 Top Stories (By Reads)</h3>
           <div id="topStories" class="topStoriesList"></div>
         </div>
+
+        <div class="analyticsSection">
+          <h3>⭐ Popular Posts (Most Read)</h3>
+          <div id="popularPostsList" class="postStatsList"></div>
+        </div>
+
+        <div class="analyticsSection">
+          <h3>🆕 Newest Posts</h3>
+          <div id="newestPostsList" class="postStatsList"></div>
+        </div>
+
+        <div class="analyticsSection">
+          <h3>📖 Oldest Posts</h3>
+          <div id="oldestPostsList" class="postStatsList"></div>
+        </div>
+
+        <div class="analyticsSection">
+          <h3>📊 All Your Posts With Read Counts</h3>
+          <div id="allPostsReadStats" class="postStatsList"></div>
+        </div>
+
+        <!-- Admin Analytics Section (visible only for admins) -->
+        <div id="adminAnalyticsSection" class="analyticsSection" style="display:none;margin-top:32px;padding-top:24px;border-top:2px solid var(--border)">
+          <h3>👑 Admin Platform Analytics</h3>
+          <div class="statsGrid" style="margin-top:16px">
+            <div class="statCard">
+              <div class="statNumber" id="totalUsers">0</div>
+              <div class="statLabel">Total Users</div>
+            </div>
+            <div class="statCard">
+              <div class="statNumber" id="totalAdmins">0</div>
+              <div class="statLabel">Admins</div>
+            </div>
+            <div class="statCard">
+              <div class="statNumber" id="platformPosts">0</div>
+              <div class="statLabel">All Posts</div>
+            </div>
+            <div class="statCard">
+              <div class="statNumber" id="platformComments">0</div>
+              <div class="statLabel">Total Comments</div>
+            </div>
+            <div class="statCard">
+              <div class="statNumber" id="platformLikes">0</div>
+              <div class="statLabel">Total Likes</div>
+            </div>
+            <div class="statCard">
+              <div class="statNumber" id="totalNotifications">0</div>
+              <div class="statLabel">Notifications</div>
+            </div>
+          </div>
+          <div style="margin-top:20px;padding:16px;background:var(--bg-card);border-radius:8px;border:1px solid var(--border)">
+            <p style="margin:0;margin-bottom:12px"><strong>📊 System Data Summary:</strong></p>
+            <div id="systemDataContainer" style="font-size:14px;line-height:1.8"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Moderation Tab (Admin Only) -->
+      <section id="moderation" class="tab-content">
+        <div class="sectionHeader">
+          <h2>🚨 Content Moderation</h2>
+        </div>
+        <div class="moderationSection">
+          <h3>Posts</h3>
+          <div id="postsModerationList" class="contentList"></div>
+        </div>
+        <div class="moderationSection">
+          <h3>Comments</h3>
+          <div id="commentsModerationList" class="contentList"></div>
+        </div>
+      </section>
+
+      <!-- Users Tab (Admin Only) -->
+      <section id="users" class="tab-content">
+        <div class="sectionHeader">
+          <h2>👥 User Management</h2>
+          <input id="searchUsers" type="text" placeholder="Search users..." class="searchInput" />
+        </div>
+        <div id="usersList" class="usersList"></div>
       </section>
     </main>
 
@@ -401,6 +476,6 @@
       </div>
     </div>
   </body>
-  <script src="script.js"></script>
+  <script type="module" src="script.js"></script>
   <script type="module" src="script-firebase.js"></script>
 </html>

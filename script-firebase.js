@@ -51,7 +51,7 @@ const restoreBackupBtn = document.getElementById("restoreBackup");
 const toggleTheme = document.getElementById("toggleTheme");
 const profileBtn = document.getElementById("profileBtn");
 const logoutBtn = document.getElementById("logoutBtn");
-const currentUserName = document.getElementById("currentUserName");
+// const currentUserName = document.getElementById("currentUserName"); // Element removed from HTML
 const tabBtns = document.querySelectorAll(".tabBtn");
 const tabContents = document.querySelectorAll(".tab-content");
 const publishedPosts = document.getElementById("publishedPosts");
@@ -325,13 +325,13 @@ function updateAuthUI() {
   const authModal = document.getElementById("authModal");
 
   if (user && currentUserData) {
-    currentUserName.textContent = currentUserData.displayName || user.email;
+    // currentUserName element was removed from HTML, no longer updating it here
     profileBtn.style.display = "inline-block";
     logoutBtn.style.display = "inline-block";
     if (mainContainer) mainContainer.style.display = "block";
     if (authModal) authModal.classList.add("hidden");
   } else {
-    currentUserName.textContent = "";
+    // currentUserName element was removed from HTML, no longer updating it here
     profileBtn.style.display = "none";
     logoutBtn.style.display = "none";
     if (mainContainer) mainContainer.style.display = "none";

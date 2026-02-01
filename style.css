@@ -247,12 +247,31 @@ body{
   cursor:pointer;
   font-weight:600;
   transition:all 0.2s ease;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-height:40px;
+}
+
+.profileBtn img{
+  width:36px !important;
+  height:36px !important;
+  border-radius:50% !important;
+  object-fit:cover !important;
+  border:2px solid var(--accent-primary) !important;
+  flex-shrink:0;
+  display:block;
 }
 
 .profileBtn:hover, .logoutBtn:hover{
   border-color:var(--accent-primary);
   color:var(--accent-primary);
   background:rgba(230,57,70,0.1);
+}
+
+.profileBtn:hover img{
+  box-shadow:0 0 12px var(--accent-primary);
+  transform:scale(1.05);
 }
 
 .container{
@@ -2111,4 +2130,164 @@ body{
 
 .authToggleLink:hover{
   text-decoration:underline;
+}
+
+/* ============================================
+   ADMIN PANEL STYLES
+   ============================================ */
+
+/* Moderation Section */
+.moderationSection {
+  margin: 24px 0;
+}
+
+.moderationSection h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: var(--text);
+}
+
+.contentList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.moderationItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  gap: 16px;
+}
+
+.moderationItem div {
+  flex: 1;
+  min-width: 0;
+}
+
+.moderationItem button {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+/* Users List */
+.usersList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.userItemCard {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  gap: 16px;
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.userAvatar {
+  flex-shrink: 0;
+  object-fit: cover;
+}
+
+.userInfo > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.userInfo strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.userActions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.userActions button {
+  padding: 8px 12px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .moderationItem {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .userItemCard {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .userActions {
+    width: 100%;
+  }
+
+  .userActions button {
+    flex: 1;
+  }
+}
+
+/* Post Stats Items */
+.postStatsList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.postStatItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  gap: 16px;
+  transition: all 0.2s ease;
+}
+
+.postStatItem:hover {
+  border-color: var(--accent-primary);
+  background: rgba(230, 57, 70, 0.05);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .postStatItem {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .postStatItem > div:last-child {
+    width: 100%;
+    display: flex;
+    gap: 12px;
+    justify-content: space-around;
+  }
 }

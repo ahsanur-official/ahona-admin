@@ -703,6 +703,15 @@ export {
   auth,
   db,
   storage,
+  // Firestore functions (for admin panel)
+  collection,
+  getDocs,
+  deleteDoc,
+  doc,
+  query,
+  orderBy,
+  getDoc,
+  updateDoc,
   // Auth
   registerUser,
   loginUser,
