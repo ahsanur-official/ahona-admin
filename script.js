@@ -1031,15 +1031,15 @@ profileBtn.addEventListener("click", () => {
       <h4>⚙️ PREFERENCES</h4>
       <div style="display:flex;flex-direction:column;gap:12px;margin-top:12px">
         <div class="formGroup">
-          <label for="langSelectProfile">🌐 Language</label>
-          <select id="langSelectProfile" style="padding:8px 12px;border-radius:8px;border:2px solid var(--border);background:var(--bg);color:var(--text);width:100%;font-size:14px;">
+          <label for="langSelectProfile" style="font-weight:500;color:var(--text);margin-bottom:6px;display:block">🌐 Language</label>
+          <select id="langSelectProfile" style="padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);width:100%;font-size:14px;cursor:pointer">
             <option value="en">EN - English</option>
             <option value="bn">বাংলা - Bangla</option>
           </select>
         </div>
         <div class="formGroup">
-          <label for="translationMode">🔄 Translation Mode</label>
-          <select id="translationMode" style="padding:8px 12px;border-radius:8px;border:2px solid var(--border);background:var(--bg);color:var(--text);width:100%;font-size:14px;">
+          <label for="translationMode" style="font-weight:500;color:var(--text);margin-bottom:6px;display:block">🔄 Translation Mode</label>
+          <select id="translationMode" style="padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);width:100%;font-size:14px;cursor:pointer">
             <option value="off">Off - No Translation</option>
             <option value="english">English Only</option>
             <option value="bangla">বাংলা Only</option>
@@ -1091,10 +1091,10 @@ profileBtn.addEventListener("click", () => {
 
     <div class="profileSection">
       <h4>📤 EXPORT DATA</h4>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
-        <button id="exportPosts" class="btnSecondary">📄 Export Posts</button>
-        <button id="exportJSON" class="btnSecondary">📋 Export JSON</button>
-        <button id="exportPDF" class="btnSecondary">📕 Export PDF</button>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">
+        <button id="exportPosts" class="btnSecondary" style="padding:12px 16px;border-radius:8px">📄 Export Posts</button>
+        <button id="exportJSON" class="btnSecondary" style="padding:12px 16px;border-radius:8px">📋 Export JSON</button>
+        <button id="exportPDF" class="btnSecondary" style="padding:12px 16px;border-radius:8px;grid-column:1/3">📕 Export PDF</button>
       </div>
     </div>
   `;

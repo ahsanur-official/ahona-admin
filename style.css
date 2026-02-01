@@ -2140,11 +2140,10 @@ body {
     width: 100%;
     justify-content: center;
     padding: 18px 18px;
-    font-size: 17px;
-    
+    font-size: 16px;
     background: transparent;
     color: var(--text);
-    font-weight: 400;
+    font-weight: 500;
     transition: all 0.25s ease;
     min-height: 52px;
     display: flex;
@@ -2420,7 +2419,7 @@ body {
   }
 
   .mobileTabNav {
-    gap: 20px;
+    gap: 17px;
   }
 
   .mobileTabNav .tabBtn {
