@@ -142,7 +142,7 @@ function updateTopBarAvatar() {
       avatarImg.className = "topBarAvatar";
       avatarImg.src = user.profilePic;
       avatarImg.alt = "Profile";
-      avatarImg.style.cssText = "width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--accent-primary);margin-right:8px";
+      avatarImg.style.cssText = "width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid var(--accent-primary);";
       profileBtn.innerHTML = "";
       profileBtn.appendChild(avatarImg);
     } else {
@@ -150,7 +150,7 @@ function updateTopBarAvatar() {
     }
   } else {
     if (profileBtn.querySelector(".topBarAvatar")) {
-      profileBtn.innerHTML = "👤 Profile";
+      profileBtn.innerHTML = "";
     }
   }
 }
@@ -402,6 +402,8 @@ tabBtns.forEach((btn) => {
     if (tabName === "published") renderPublished();
     if (tabName === "drafts") renderDrafts();
     if (tabName === "analytics") updateAnalytics();
+    if (tabName === "users") renderUsersTab();
+    if (tabName === "moderation") renderModerationTab();
   });
 });
 
@@ -1026,7 +1028,7 @@ profileBtn.addEventListener("click", () => {
     </div>
 
     <div class="profileSection">
-      <h4>⚙️ Preferences</h4>
+      <h4>⚙️ PREFERENCES</h4>
       <div style="display:flex;flex-direction:column;gap:12px;margin-top:12px">
         <div class="formGroup">
           <label for="langSelectProfile">🌐 Language</label>
@@ -1034,6 +1036,16 @@ profileBtn.addEventListener("click", () => {
             <option value="en">EN - English</option>
             <option value="bn">বাংলা - Bangla</option>
           </select>
+        </div>
+        <div class="formGroup">
+          <label for="translationMode">🔄 Translation Mode</label>
+          <select id="translationMode" style="padding:8px 12px;border-radius:8px;border:2px solid var(--border);background:var(--bg);color:var(--text);width:100%;font-size:14px;">
+            <option value="off">Off - No Translation</option>
+            <option value="english">English Only</option>
+            <option value="bangla">বাংলা Only</option>
+            <option value="both">Both Languages (Bilingual)</option>
+          </select>
+          <small style="color:var(--secondary);font-size:12px;margin-top:4px;display:block">Choose how to display content</small>
         </div>
         <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
           <input type="checkbox" id="autoSaveEnabled" ${user.autoSave !== false ? "checked" : ""} style="width:18px;height:18px;cursor:pointer" />
@@ -1078,11 +1090,11 @@ profileBtn.addEventListener("click", () => {
     </div>
 
     <div class="profileSection">
-      <h4>📤 Export Data</h4>
+      <h4>📤 EXPORT DATA</h4>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
-        <button id="exportPosts" class="btnSecondary">📄 Export Posts (JSON)</button>
-        <button id="exportDrafts" class="btnSecondary">📋 Export Drafts (JSON)</button>
-        <button id="exportAll" class="btnSecondary">💾 Export All Data</button>
+        <button id="exportPosts" class="btnSecondary">📄 Export Posts</button>
+        <button id="exportJSON" class="btnSecondary">📋 Export JSON</button>
+        <button id="exportPDF" class="btnSecondary">📕 Export PDF</button>
       </div>
     </div>
   `;
@@ -1243,20 +1255,7 @@ profileBtn.addEventListener("click", () => {
     showNotification("📄 Posts exported successfully!", "success");
   });
 
-  document.getElementById("exportDrafts").addEventListener("click", () => {
-    const drafts = loadDrafts()[user.username] || [];
-    const dataStr = JSON.stringify(drafts, null, 2);
-    const dataBlob = new Blob([dataStr], { type: "application/json" });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `drafts_${user.username}_${Date.now()}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
-    showNotification("📋 Drafts exported successfully!", "success");
-  });
-
-  document.getElementById("exportAll").addEventListener("click", () => {
+  document.getElementById("exportJSON").addEventListener("click", () => {
     const allData = {
       posts: loadPosts().filter(
         (p) => p.author === user.username && p.published,
@@ -1278,8 +1277,68 @@ profileBtn.addEventListener("click", () => {
     link.download = `all_data_${user.username}_${Date.now()}.json`;
     link.click();
     URL.revokeObjectURL(url);
-    showNotification("💾 All data exported successfully!", "success");
+    showNotification("📋 JSON exported successfully!", "success");
   });
+
+  document.getElementById("exportPDF").addEventListener("click", () => {
+    const posts = loadPosts().filter(
+      (p) => p.author === user.username && p.published,
+    );
+    
+    if (posts.length === 0) {
+      showNotification("❌ No posts to export as PDF!", "error");
+      return;
+    }
+
+    // Create PDF content
+    let pdfContent = `AHONA ISLAM - BLOG POSTS EXPORT\n`;
+    pdfContent += `Exported by: ${user.displayName || user.username}\n`;
+    pdfContent += `Date: ${new Date().toLocaleString()}\n`;
+    pdfContent += `${'='.repeat(60)}\n\n`;
+
+    posts.forEach((post, index) => {
+      pdfContent += `${index + 1}. ${post.title}\n`;
+      pdfContent += `-`.repeat(40) + `\n`;
+      pdfContent += `Author: ${post.author}\n`;
+      pdfContent += `Date: ${new Date(post.date || post.timestamp).toLocaleDateString()}\n`;
+      pdfContent += `Category: ${post.category || 'Uncategorized'}\n`;
+      pdfContent += `Views: ${post.views || 0} | Likes: ${post.likes || 0}\n\n`;
+      
+      // Remove HTML tags from content
+      const plainText = post.content.replace(/<[^>]*>/g, '');
+      pdfContent += plainText.substring(0, 500) + (plainText.length > 500 ? '...' : '') + `\n`;
+      pdfContent += `\n${'='.repeat(60)}\n\n`;
+    });
+
+    // Create and download PDF as text file with pdf extension (browser will treat as text)
+    const dataBlob = new Blob([pdfContent], { type: "text/plain" });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `posts_export_${user.username}_${Date.now()}.pdf`;
+    link.click();
+    URL.revokeObjectURL(url);
+    showNotification("📕 Posts exported as PDF successfully!", "success");
+  });
+
+  // Translation mode selector
+  const translationMode = document.getElementById("translationMode");
+  if (translationMode) {
+    const currentMode = localStorage.getItem("translationMode") || "off";
+    translationMode.value = currentMode;
+
+    translationMode.addEventListener("change", (e) => {
+      const newMode = e.target.value;
+      localStorage.setItem("translationMode", newMode);
+      const modeNames = {
+        off: "Translation Off",
+        english: "English Only",
+        bangla: "বাংলা Only",
+        both: "Bilingual Mode"
+      };
+      showNotification(`🔄 ${modeNames[newMode]} enabled`, "success");
+    });
+  }
 
   // Language selector (in profile)
   const langSelectProfile = document.getElementById("langSelectProfile");
